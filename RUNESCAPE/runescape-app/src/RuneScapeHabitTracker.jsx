@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Plus, X, Trash2, Grid3X3, LayoutGrid, Target, Volume2, VolumeX, Sparkles, Pause } from 'lucide-react';
+import { Plus, X, Trash2, Grid3X3, LayoutGrid, Target, Volume2, VolumeX, Sparkles, Pause, LogIn } from 'lucide-react';
 import useSoundEffects from './hooks/useSoundEffects';
 import usePrefersReducedMotion from './hooks/usePrefersReducedMotion';
 import { triggerHaptic } from './utils/haptics';
+import { useAuth } from './context/AuthContext';
+import { LoginModal, UserMenu } from './components/Auth';
 
 const NATIVE_WIDTH = 204;
 
@@ -53,6 +55,10 @@ const RuneScapeHabitTracker = () => {
   const [xpBarShimmer, setXpBarShimmer] = useState(false); // Trigger shimmer on XP gain
   const [streakMilestone, setStreakMilestone] = useState(null); // { days, habitName }
   const [particles, setParticles] = useState([]); // Array of particle objects
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  // Auth hook
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
 
   // Sound effects hook
   const { play: playSound, enabled: soundEnabled, toggle: toggleSound } = useSoundEffects();
@@ -1487,6 +1493,19 @@ const RuneScapeHabitTracker = () => {
                 >
                   <Plus size={10} />
                 </IconButton>
+                {isAuthenticated ? (
+                  <UserMenu />
+                ) : (
+                  <IconButton
+                    onClick={() => {
+                      playSound('click');
+                      setShowLoginModal(true);
+                    }}
+                    title="Sign In"
+                  >
+                    <LogIn size={10} />
+                  </IconButton>
+                )}
               </div>
             </div>
 
@@ -2340,6 +2359,12 @@ const RuneScapeHabitTracker = () => {
           </div>
         </div>
       )}
+
+      {/* Login Modal */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+      />
 
       {/* Particles Container */}
       <div
