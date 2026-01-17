@@ -44,7 +44,7 @@ const UserMenu = () => {
           height: '22px',
           borderRadius: '50%',
           border: '2px solid',
-          borderColor: isHovered ? '#ff981f' : '#5c4d3d',
+          borderColor: isHovered ? '#ff981f' : '#00ff00',
           background: avatarUrl ? 'none' : 'linear-gradient(180deg, #4a3d2e 0%, #2a231a 100%)',
           cursor: 'pointer',
           padding: 0,
@@ -52,8 +52,9 @@ const UserMenu = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          transition: 'border-color 0.15s ease-out',
-          boxShadow: isHovered ? '0 0 6px rgba(255,152,31,0.4)' : 'none',
+          transition: 'border-color 0.15s ease-out, box-shadow 0.15s ease-out',
+          boxShadow: isHovered ? '0 0 8px rgba(255,152,31,0.6)' : '0 0 6px rgba(0,255,0,0.5)',
+          position: 'relative',
         }}
       >
         {avatarUrl ? (
@@ -70,6 +71,18 @@ const UserMenu = () => {
         ) : (
           <User size={12} color="#ff981f" />
         )}
+        {/* Online indicator dot */}
+        <div style={{
+          position: 'absolute',
+          bottom: '-1px',
+          right: '-1px',
+          width: '8px',
+          height: '8px',
+          background: '#00ff00',
+          borderRadius: '50%',
+          border: '2px solid #1a1610',
+          boxShadow: '0 0 4px rgba(0,255,0,0.8)',
+        }} />
       </button>
 
       {/* Dropdown Menu */}
