@@ -56,6 +56,9 @@ const RuneScapeHabitTracker = () => {
   const [streakMilestone, setStreakMilestone] = useState(null); // { days, habitName }
   const [particles, setParticles] = useState([]); // Array of particle objects
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [screenShaking, setScreenShaking] = useState(false); // Screen shake on level-up
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // { habitId, shaking } for delete confirmation
+  const [ripples, setRipples] = useState([]); // Array of ripple effects
 
   // Auth hook
   const { user, isAuthenticated, loading: authLoading } = useAuth();
@@ -274,8 +277,12 @@ const RuneScapeHabitTracker = () => {
       triggerHaptic('levelUp');
       // Spawn more particles for level up
       spawnParticles(e.clientX, e.clientY, 16, '#ffff00', true);
+      triggerScreenShake();
       setLevelUpInfo(leveledUp);
     }
+
+    // Spawn ripple effect on completion
+    spawnRipple(e.clientX, e.clientY, 'rgba(0, 255, 0, 0.4)');
   };
 
   // Timer functions for timed skills
@@ -353,8 +360,12 @@ const RuneScapeHabitTracker = () => {
       triggerHaptic('levelUp');
       // Spawn more particles for level up
       if (e) spawnParticles(e.clientX, e.clientY, 16, '#ffff00', true);
+      triggerScreenShake();
       setLevelUpInfo(leveledUp);
     }
+
+    // Spawn ripple effect on timer stop
+    if (e && xpGained > 0) spawnRipple(e.clientX, e.clientY, 'rgba(255, 153, 0, 0.4)');
   };
 
   // Format time for display (mm:ss or hh:mm:ss)
@@ -402,9 +413,24 @@ const RuneScapeHabitTracker = () => {
     }
   }, [hasRunningTimer]);
 
-  const deleteHabit = (habitId) => {
+  const deleteHabit = (habitId, confirmed = false) => {
+    if (!confirmed) {
+      // First click - show confirmation with danger shake
+      setDeleteConfirm({ habitId, shaking: true });
+      setTimeout(() => {
+        setDeleteConfirm(prev => prev ? { ...prev, shaking: false } : null);
+      }, 500);
+      // Auto-reset confirmation after 3 seconds
+      setTimeout(() => {
+        setDeleteConfirm(prev => prev?.habitId === habitId ? null : prev);
+      }, 3000);
+      return;
+    }
+
+    // Confirmed - actually delete
     saveHabits(habits.filter(h => h.id !== habitId));
     setSelectedHabit(null);
+    setDeleteConfirm(null);
     setFocusedSkills(prev => prev.filter(id => id !== habitId));
   };
 
@@ -495,6 +521,39 @@ const RuneScapeHabitTracker = () => {
       setParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id)));
     }, 800);
   }, [shouldAnimate]);
+
+  // Spawn ripple effect at a position
+  const spawnRipple = useCallback((x, y, color = 'rgba(0, 255, 0, 0.4)') => {
+    if (!shouldAnimate) return;
+
+    const ripple = {
+      id: Date.now(),
+      x,
+      y,
+      color,
+    };
+
+    setRipples(prev => [...prev, ripple]);
+
+    // Clean up ripple after animation
+    setTimeout(() => {
+      setRipples(prev => prev.filter(r => r.id !== ripple.id));
+    }, 600);
+  }, [shouldAnimate]);
+
+  // Trigger screen shake for level-up
+  const triggerScreenShake = useCallback(() => {
+    if (!shouldAnimate) return;
+    setScreenShaking(true);
+    setTimeout(() => setScreenShaking(false), 400);
+  }, [shouldAnimate]);
+
+  // Calculate daily completion percentage
+  const getDailyCompletionPercentage = useCallback(() => {
+    if (habits.length === 0) return 0;
+    const completedToday = habits.filter(h => isCompletedToday(h)).length;
+    return Math.round((completedToday / habits.length) * 100);
+  }, [habits]);
 
   const getXpBarWidth = (habit, includePending = false) => {
     if (habit.level >= 99) return 100;
@@ -1369,7 +1428,7 @@ const RuneScapeHabitTracker = () => {
 
   return (
     <div
-      className={!shouldAnimate ? 'animations-paused' : ''}
+      className={`${!shouldAnimate ? 'animations-paused' : ''} ${screenShaking ? 'screen-shake' : ''}`}
       style={{
         width: '100vw',
         height: '100vh',
@@ -1532,7 +1591,7 @@ const RuneScapeHabitTracker = () => {
               </div>
             )}
 
-            {/* Total Level Banner - Shift+Click to reset */}
+            {/* Total Level Banner with Progress Ring - Shift+Click to reset */}
             <div
               onClick={(e) => {
                 if (e.shiftKey && window.confirm('Reset all habit data?')) {
@@ -1545,27 +1604,71 @@ const RuneScapeHabitTracker = () => {
                 borderTop: '1px solid #3d3226',
                 padding: '6px 8px',
                 display: 'flex',
-                justifyContent: 'center',
+                justifyContent: 'space-between',
                 alignItems: 'center',
                 cursor: 'default',
               }}>
-              <span style={{
-                color: '#ffff00',
-                textShadow: '1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000',
-                fontSize: '8px',
-                letterSpacing: '0.5px',
-              }}>
-                Total level:
-              </span>
-              <span style={{
-                color: '#ffff00',
-                textShadow: '1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000',
-                fontSize: '10px',
-                fontWeight: 'bold',
-                marginLeft: '6px',
-              }}>
-                {totalLevel}
-              </span>
+              {/* Progress Ring with Daily Completion */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <svg
+                  className="progress-ring"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  style={{ transform: 'rotate(-90deg)' }}
+                >
+                  {/* Background circle */}
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="9"
+                    fill="none"
+                    stroke="#2a2218"
+                    strokeWidth="3"
+                  />
+                  {/* Progress circle */}
+                  <circle
+                    className="progress-ring-circle"
+                    cx="12"
+                    cy="12"
+                    r="9"
+                    fill="none"
+                    stroke={getDailyCompletionPercentage() === 100 ? '#00ff00' : '#ff981f'}
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeDasharray={`${2 * Math.PI * 9}`}
+                    strokeDashoffset={`${2 * Math.PI * 9 * (1 - getDailyCompletionPercentage() / 100)}`}
+                    style={{ transition: 'stroke-dashoffset 0.5s ease-out, stroke 0.3s ease' }}
+                  />
+                </svg>
+                <span style={{
+                  color: getDailyCompletionPercentage() === 100 ? '#00ff00' : '#ff981f',
+                  textShadow: '1px 1px 0 #000',
+                  fontSize: '6px',
+                }}>
+                  {getDailyCompletionPercentage()}%
+                </span>
+              </div>
+
+              {/* Total Level Display */}
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <span style={{
+                  color: '#aaa',
+                  textShadow: '1px 1px 0 #000',
+                  fontSize: '5px',
+                }}>
+                  Total:
+                </span>
+                <span style={{
+                  color: '#ffff00',
+                  textShadow: '1px 1px 0 #000',
+                  fontSize: '8px',
+                  fontWeight: 'bold',
+                  marginLeft: '3px',
+                }}>
+                  {totalLevel}
+                </span>
+              </div>
             </div>
           </div>
           </div>
@@ -2042,15 +2145,42 @@ const RuneScapeHabitTracker = () => {
                   </ActionButton>
                 )}
 
-                {/* Delete Button */}
-                <ActionButton
-                  onClick={() => deleteHabit(selectedHabit.id)}
-                  variant="danger"
-                  style={{ width: '100%', fontSize: '6px', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+                {/* Delete Button with Confirmation */}
+                <div
+                  className={deleteConfirm?.habitId === selectedHabit.id && deleteConfirm?.shaking ? 'danger-shake' : ''}
+                  style={{ display: 'flex', justifyContent: 'flex-end' }}
                 >
-                  <Trash2 size={8} />
-                  DELETE
-                </ActionButton>
+                  <button
+                    onClick={() => {
+                      if (deleteConfirm?.habitId === selectedHabit.id) {
+                        deleteHabit(selectedHabit.id, true);
+                      } else {
+                        deleteHabit(selectedHabit.id);
+                      }
+                    }}
+                    style={{
+                      background: deleteConfirm?.habitId === selectedHabit.id
+                        ? 'linear-gradient(180deg, #aa2a2a 0%, #8a1a1a 100%)'
+                        : 'transparent',
+                      border: 'none',
+                      color: '#ff6666',
+                      fontSize: '5px',
+                      padding: '2px 4px',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '2px',
+                      opacity: deleteConfirm?.habitId === selectedHabit.id ? 1 : 0.7,
+                      transition: 'opacity 0.1s ease',
+                    }}
+                    onMouseEnter={(e) => e.target.style.opacity = '1'}
+                    onMouseLeave={(e) => e.target.style.opacity = deleteConfirm?.habitId === selectedHabit.id ? '1' : '0.7'}
+                  >
+                    <Trash2 size={6} />
+                    {deleteConfirm?.habitId === selectedHabit.id ? 'confirm?' : 'delete'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -2394,6 +2524,23 @@ const RuneScapeHabitTracker = () => {
               boxShadow: `0 0 ${particle.size}px ${particle.color}`,
               '--tx': `${particle.tx}px`,
               '--ty': `${particle.ty}px`,
+            }}
+          />
+        ))}
+
+        {/* Ripple Effects */}
+        {ripples.map(ripple => (
+          <div
+            key={ripple.id}
+            className="ripple-effect"
+            style={{
+              left: ripple.x,
+              top: ripple.y,
+              width: '40px',
+              height: '40px',
+              marginLeft: '-20px',
+              marginTop: '-20px',
+              background: ripple.color,
             }}
           />
         ))}

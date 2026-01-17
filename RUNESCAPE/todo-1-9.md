@@ -99,21 +99,21 @@
 
 ---
 
-## Priority 4: Nice to Have
+## Priority 4: Nice to Have ✅
 
 ### Visual Polish
-- [ ] Add screen shake on level-up
-- [ ] Add incomplete habit wiggle reminder animation
-- [ ] Add ripple effect on successful actions
-- [ ] Add input field focus state styling
+- [x] Add screen shake on level-up
+- [x] ~~Add incomplete habit wiggle reminder animation~~ (removed)
+- [x] Add ripple effect on successful actions
+- [x] Add input field focus state styling
 
 ### Delete UX
-- [ ] Add danger shake animation before delete
-- [ ] Consider hold-to-delete or confirmation step
+- [x] Add danger shake animation before delete
+- [x] Consider hold-to-delete or confirmation step
 
 ### Progress Visualization
-- [ ] Add progress ring around total level counter
-- [ ] Show daily completion percentage
+- [x] Add progress ring around total level counter
+- [x] Show daily completion percentage
 
 ---
 
@@ -128,11 +128,11 @@
 - [x] `@keyframes cellFadeIn`
 - [x] `@keyframes timerToggle`
 - [x] `@keyframes completionFlash`
-- [ ] `@keyframes gentleWiggle`
-- [ ] `@keyframes dangerShake`
-- [ ] `@keyframes screenShake`
-- [ ] `@keyframes ripple`
-- [ ] Update `@keyframes pulse` (slower: 1.5s)
+- [x] `@keyframes gentleWiggle`
+- [x] `@keyframes dangerShake`
+- [x] `@keyframes screenShake`
+- [x] `@keyframes ripple`
+- [x] Update `@keyframes pulse` (slower: 1.5s)
 
 ---
 
@@ -170,6 +170,6 @@
 | P1 - Quick Wins | 14 | 14 |
 | P2 - Medium | 17 | 17 |
 | P3 - Larger | 18 | 18 |
-| P4 - Nice to Have | 6 | 0 |
-| CSS Animations | 14 | 12 |
-| **Total** | **69** | **61** |
+| P4 - Nice to Have | 8 | 8 |
+| CSS Animations | 14 | 14 |
+| **Total** | **71** | **71** |
